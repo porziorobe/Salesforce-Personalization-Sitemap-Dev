@@ -49,121 +49,227 @@ DEFAULT_STYLES = {
     },
 }
 
-LLM_PROMPT = """You are an expert Salesforce Personalization (Interaction Studio) developer.
-Your job is to generate a ready-to-use sitemap JavaScript file.
-
-You will receive four inputs:
-1. PAGE_URL  - The customer's webpage URL
-2. TARGET_HTML - The cleaned HTML of the hero element to personalize
-3. TARGET_SELECTOR - The CSS selector for that element
-4. EXTRACTED_STYLES - Fallback CSS values extracted from the customer's page
-
-=== TASK ===
-Output a single JavaScript file. It has two parts:
-
-PART 1 — FIXED BOILERPLATE (output verbatim, substituting only CUSTOMER_NAME
-and TARGET_SELECTOR as noted):
-
-//SimpleSitemap
+SITEMAP_TEMPLATE = r"""//SimpleSitemap
 SalesforceInteractions.setLoggingLevel(100);
-SalesforceInteractions.updateConsents({{
+SalesforceInteractions.updateConsents({
     purpose: SalesforceInteractions.ConsentPurpose.Tracking,
     provider: "Example Consent Manager",
     status: SalesforceInteractions.ConsentStatus.OptIn
-}});
+});
 
 document.addEventListener(
-    SalesforceInteractions.CustomEvents.OnSetAnonymousId, () => {{
-        SalesforceInteractions.sendEvent({{
-            user: {{ attributes: {{ eventType: 'identity' }} }}
-        }})
-    }}
+    SalesforceInteractions.CustomEvents.OnSetAnonymousId, () => {
+        SalesforceInteractions.sendEvent({
+            user: { attributes: { eventType: 'identity' } }
+        })
+    }
 );
 
 document.querySelector('html').style.fontSize = '14px';
-SalesforceInteractions.Personalization.Config.initialize({{
-    additionalTransformers: [{{
-        name: "CUSTOMER_NAME_Homepage_Hero_Banner",
+SalesforceInteractions.Personalization.Config.initialize({
+    additionalTransformers: [{
+        name: "{{CUSTOMER_NAME}}_Homepage_Hero_Banner",
         transformerType: "Handlebars",
         lastModifiedDate: new Date().getTime() - (1000 * 60 * 5),
-        substitutionDefinitions: {{
-            BackgroundImageUrl: {{ defaultValue: '[attributes].[BackgroundImageUrl]' }},
-            Header: {{ defaultValue: '[attributes].[Header]' }},
-            Subheader: {{ defaultValue: '[attributes].[Subheader]' }},
-            CallToActionUrl: {{ defaultValue: '[attributes].[CallToActionUrl]' }},
-            CallToActionText: {{ defaultValue: '[attributes].[CallToActionText]' }}
-        }},
-        transformerTypeDetails: {{
-            html: `GENERATED_TRANSFORMER_HTML`
-        }}
-    }}]
-}});
+        substitutionDefinitions: {
+            BackgroundImageUrl: { defaultValue: '[attributes].[BackgroundImageUrl]' },
+            Header: { defaultValue: '[attributes].[Header]' },
+            Subheader: { defaultValue: '[attributes].[Subheader]' },
+            CallToActionUrl: { defaultValue: '[attributes].[CallToActionUrl]' },
+            CallToActionText: { defaultValue: '[attributes].[CallToActionText]' }
+        },
+        transformerTypeDetails: {
+            html: `{{HERO_TRANSFORMER_HTML}}`
+        }
+    },{{SIMPLE_RECS_TRANSFORMER}}
+    ]
+});
 
 /* ===================== SITEMAP ===================== */
 console.log("PSP: Hello world from Data Cloud");
 SalesforceInteractions.setLoggingLevel(100);
-SalesforceInteractions.updateConsents({{
+SalesforceInteractions.updateConsents({
     purpose: SalesforceInteractions.ConsentPurpose.Tracking,
     provider: "Example Consent Manager",
     status: SalesforceInteractions.ConsentStatus.OptIn
-}});
+});
 
 document.addEventListener(
-    SalesforceInteractions.CustomEvents.OnSetAnonymousId, () => {{
-        SalesforceInteractions.sendEvent({{
-            user: {{ attributes: {{ eventType: 'identity', isAnonymous: 1 }} }}
-        }})
-    }}
+    SalesforceInteractions.CustomEvents.OnSetAnonymousId, () => {
+        SalesforceInteractions.sendEvent({
+            user: { attributes: { eventType: 'identity', isAnonymous: 1 } }
+        })
+    }
 );
 
-function getMetaTag(tagName){{
+function getMetaTag(tagName){
     var metaTags = document.getElementsByTagName("META");
     var metaTagContent = "";
-    for (var i = 0; i < metaTags.length; i++) {{
-        if(metaTags[i].name == tagName){{
+    for (var i = 0; i < metaTags.length; i++) {
+        if(metaTags[i].name == tagName){
             metaTagContent = metaTags[i].getAttribute('content');
-        }}
-    }}
+        }
+    }
     return metaTagContent;
-}}
+}
 
-SalesforceInteractions.init().then(() => {{
-    const config = {{
-        global: {{ onActionEvent: (event) => {{ return event; }} }},
-        pageTypes: [{{
+SalesforceInteractions.init().then(() => {
+    const config = {
+        global: { onActionEvent: (event) => { return event; } },
+        pageTypes: [{
             name: "Homepage",
             isMatch: () => window.location.pathname === '/',
-            interaction: {{ name: "Homepage", eventType: "browse", pageType: "Homepage" }},
-            onActionEvent: (event) => {{
-                if (event.interaction.name == "Homepage") {{
+            interaction: { name: "Homepage", eventType: "browse", pageType: "Homepage" },
+            onActionEvent: (event) => {
+                if (event.interaction.name == "Homepage") {
                     SalesforceInteractions.Personalization
-                        .fetch(["CUSTOMER_NAME_Homepage_Hero_Banner"])
+                        .fetch(["{{CUSTOMER_NAME}}_Homepage_Hero_Banner"])
                         .then(r => renderBannerHeader(r.personalizations[0].attributes))
-                }}
+                }
                 return event;
-            }},
-            contentZones: [{{ name: "Homepage | Hero", selector: "TARGET_SELECTOR" }}]
-        }}],
-        pageTypeDefault: {{ name: "Default" }}
-    }};
+            },
+            contentZones: [
+                { name: "Homepage | Hero", selector: "{{TARGET_SELECTOR}}" }
+                // { name: "Homepage | Recs", selector: "RECS_SELECTOR" }
+            ]
+        }],
+        pageTypeDefault: { name: "Default" }
+    };
     SalesforceInteractions.initSitemap(config);
-}});
+});"""
 
-^^^ END OF FIXED BOILERPLATE ^^^
 
-The ONLY things you change in the boilerplate above are:
-- Replace every CUSTOMER_NAME with the customer name derived from PAGE_URL
-  (e.g. https://www.ahead.com → Ahead)
-- Replace TARGET_SELECTOR with the actual CSS selector from the input
-- Replace GENERATED_TRANSFORMER_HTML with the HTML you generate in Part 2
+SIMPLE_RECS_TRANSFORMER_JS = r"""
+    {
+        name: "SimpleRecs",
+        transformerType: "Handlebars",
+        lastModifiedDate: new Date().getTime() - (1000 * 60 * 60 * 36),
+        substitutionDefinitions: {
+            recs: { defaultValue: '[data]' },
+            image: { defaultValue: '[ImageUrl__c]' },
+            name: { defaultValue: '[ssot__Name__c]' },
+            linkUrl: { defaultValue: '[LinkURL__c]' }
+        },
+        transformerTypeDetails: {
+            html: `
+            <style>
+                .sfdcep-recs-carousel {
+                    width: 100%;
+                    max-width: 1440px;
+                    margin: 0 auto;
+                    display: flex;
+                    flex-flow: row wrap;
+                    justify-content: space-evenly;
+                    padding: 20px 0;
+                    gap: 20px;
+                }
+                .sfdcep-recs-card-wrapper {
+                    width: 22%;
+                    min-width: 240px;
+                    flex: 1 1 240px;
+                }
+                .sfdcep-recs-card {
+                    height: 100%;
+                    background: #fff;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+                    display: flex;
+                    flex-direction: column;
+                }
+                .sfdcep-recs-card .cmp-image__image {
+                    width: 100%;
+                    height: 200px;
+                    object-fit: cover;
+                    display: block;
+                }
+                .sfdcep-recs-card__content {
+                    padding: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    flex: 1;
+                }
+                .sfdcep-recs-card__title {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1d1d1d;
+                    margin: 0;
+                    font-family: Arial, Helvetica, sans-serif;
+                }
+                .sfdcep-recs-card__cta {
+                    color: #097fb3;
+                    font-size: 14px;
+                    text-decoration: none;
+                    font-weight: 500;
+                    font-family: Arial, Helvetica, sans-serif;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    margin-top: auto;
+                }
+                .sfdcep-recs-card__cta:hover {
+                    text-decoration: underline;
+                }
+                .sfdcep-recs-card__cta::after {
+                    content: '\203a';
+                    font-size: 18px;
+                    line-height: 1;
+                }
+            </style>
+            <div class="sfdcep-recs-carousel">
+                {{#each (subVar 'recs')}}
+                <div class="sfdcep-recs-card-wrapper">
+                    <div class="sfdcep-recs-card">
+                        <div class="cmp-teaser__image">
+                            {{#if (subVar 'image')}}
+                                <img src="{{subVar 'image'}}" class="cmp-image__image" alt="{{subVar 'name'}}">
+                            {{else}}
+                                <img src="https://placehold.co/750x422/e8f4fb/097fb3?text=No+Image" class="cmp-image__image" alt="">
+                            {{/if}}
+                        </div>
+                        <div class="sfdcep-recs-card__content">
+                            <h3 class="sfdcep-recs-card__title">{{subVar 'name'}}</h3>
+                            <a class="sfdcep-recs-card__cta" href="{{subVar 'linkUrl'}}" target="_self">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+                `
+        }
+    }"""
 
-Do NOT add, remove, reorder, or modify any other line in the boilerplate.
 
-=== PART 2 — GENERATE THE TRANSFORMER HTML ===
+def assemble_sitemap(customer_name, target_selector, hero_html, include_recs=False):
+    """Build the complete sitemap JS from the template and LLM-generated hero HTML."""
+    recs_block = SIMPLE_RECS_TRANSFORMER_JS if include_recs else ""
+    return (
+        SITEMAP_TEMPLATE
+        .replace("{{CUSTOMER_NAME}}", customer_name)
+        .replace("{{TARGET_SELECTOR}}", target_selector)
+        .replace("{{HERO_TRANSFORMER_HTML}}", hero_html)
+        .replace("{{SIMPLE_RECS_TRANSFORMER}}", recs_block)
+    )
 
-Adapt TARGET_HTML into a personalization transformer. Your job is to preserve the
+
+def extract_transformer_html(sitemap_js):
+    """Extract the hero transformer HTML from a previously generated sitemap."""
+    m = re.search(r"transformerTypeDetails:\s*\{\s*html:\s*`(.*?)`", sitemap_js, re.DOTALL)
+    return m.group(1).strip() if m else ""
+
+
+LLM_PROMPT = """You are an expert at adapting website HTML into Salesforce Personalization Handlebars transformers.
+
+You will receive two inputs:
+1. TARGET_HTML - The cleaned HTML of the hero element to personalize
+2. EXTRACTED_STYLES - Fallback CSS values extracted from the customer's page
+
+=== TASK ===
+
+Adapt TARGET_HTML into a Handlebars transformer HTML snippet. Preserve the
 customer's DOM structure, nesting, and CSS class names while replacing content
-with the 5 Handlebars subVar variables listed below.
+with the 5 subVar variables listed below.
 
 The output should look like a trimmed version of TARGET_HTML with subVars slotted
 into the semantically correct positions — NOT a generic template.
@@ -176,47 +282,38 @@ Rules:
    so the customer's existing stylesheets will style these class names.
    Do NOT flatten the hierarchy. Do NOT invent generic class names.
 
-2. SLOT THE 5 MANDATORY subVar VARIABLES (four curly braces each):
+2. SLOT THE 5 MANDATORY subVar VARIABLES:
    - {{{{subVar 'BackgroundImageUrl'}}}} — place as an inline style
      background: url('{{{{subVar 'BackgroundImageUrl'}}}}') no-repeat center center / cover;
      on the element where the hero's background image belongs (follow the
-     customer's existing pattern from TARGET_HTML — it may not be the
-     outermost wrapper).
+     customer's existing pattern from TARGET_HTML).
    - {{{{subVar 'Header'}}}} — text content of the main heading element
    - {{{{subVar 'Subheader'}}}} — text content of the subtitle/description element
    - {{{{subVar 'CallToActionUrl'}}}} — href of a CTA link
    - {{{{subVar 'CallToActionText'}}}} — text of that CTA link
    If TARGET_HTML lacks a CTA link, add one inside the content area styled
    to match using EXTRACTED_STYLES.cta values as inline styles.
-   All five variables MUST appear — they are the personalization fields.
+   All five variables MUST appear.
 
 3. STRIP REMAINING NOISE.
-   Remove any leftover video, audio, modal, script, or interactive elements
-   the pre-processor may have missed. Remove empty wrapper divs that serve
-   no structural purpose. Keep overlay divs, layout containers, and
-   decorative elements (like <hr> separators).
+   Remove any leftover video, audio, modal, script, or interactive elements.
+   Remove empty wrapper divs that serve no structural purpose.
 
 4. INLINE STYLES — use sparingly.
    Keep inline styles that already exist in TARGET_HTML. Add inline styles
    only where essential (background image, overlay opacity). Do NOT add a
-   <style> block. The customer's class names will inherit styles from the
-   live page's stylesheets.
-   If you must add fallback styles (e.g. for an added CTA), use
-   EXTRACTED_STYLES values as inline style attributes.
-
-Output only valid HTML. No <style> block, no JavaScript, no markdown fences.
+   <style> block. If you must add fallback styles (e.g. for an added CTA),
+   use EXTRACTED_STYLES values as inline style attributes.
 
 === INPUTS ===
-- PAGE_URL: {page_url}
-- TARGET_SELECTOR: {target_selector}
 - TARGET_HTML:
 {target_html}
 - EXTRACTED_STYLES:
 {extracted_styles}
 
 === OUTPUT ===
-Output ONLY the complete JavaScript file (Part 1 boilerplate with Part 2
-transformer HTML inserted). No markdown fences, no commentary."""
+Output ONLY valid HTML. No <style> block, no JavaScript, no boilerplate,
+no markdown fences, no commentary."""
 
 
 ISSUE_INSTRUCTIONS = {
@@ -243,17 +340,16 @@ ISSUE_INSTRUCTIONS = {
     ),
 }
 
-CORRECTION_PROMPT = """You are revising a Salesforce Personalization sitemap that you previously generated.
-The user has flagged specific issues with the transformer HTML inside transformerTypeDetails.
+CORRECTION_PROMPT = """You are revising a Salesforce Personalization Handlebars transformer HTML snippet.
+The user has flagged specific issues.
 
 RULES:
-- Fix ONLY the transformer HTML (the content inside transformerTypeDetails.html backticks).
-- Do NOT change any other part of the JavaScript — the boilerplate must remain identical.
-- All five subVar Handlebars variables remain MANDATORY in the transformer HTML.
+- Fix ONLY the transformer HTML.
+- All five subVar Handlebars variables remain MANDATORY.
 - Preserve the customer's DOM structure and class names from TARGET_HTML.
 - Do NOT add a <style> block. Use inline styles only where TARGET_HTML already has
   them or where essential (e.g. background image).
-- Output the COMPLETE revised JavaScript file. No markdown fences, no commentary.
+- Output ONLY the corrected HTML. No JavaScript, no boilerplate, no markdown fences, no commentary.
 
 === ISSUES TO FIX ===
 {issue_list}
@@ -261,19 +357,16 @@ RULES:
 {user_note}
 
 === ORIGINAL INPUTS ===
-- PAGE_URL: {page_url}
-- TARGET_SELECTOR: {target_selector}
 - TARGET_HTML:
 {target_html}
 - EXTRACTED_STYLES:
 {extracted_styles}
 
-=== YOUR PREVIOUS OUTPUT ===
-{previous_output}
+=== YOUR PREVIOUS TRANSFORMER HTML ===
+{previous_html}
 
 === OUTPUT ===
-Output the COMPLETE revised JavaScript file with the transformer HTML fixed.
-No markdown fences, no commentary."""
+Output ONLY the corrected HTML. No JavaScript, no boilerplate, no markdown fences, no commentary."""
 
 
 def fetch_page(url):
@@ -560,6 +653,7 @@ def generate():
     target_html = data.get("targetHtml") or ""
     target_selector = (data.get("targetSelector") or "").strip()
     extracted_styles = data.get("extractedStyles") or DEFAULT_STYLES
+    customer_name = (data.get("customerName") or "").strip()
 
     if not page_url:
         return jsonify(error="pageUrl is required."), 400
@@ -568,15 +662,16 @@ def generate():
     if not target_selector:
         return jsonify(error="targetSelector is required."), 400
 
+    if not customer_name:
+        customer_name = derive_customer_name(page_url)
+
     try:
         clean_html = sanitize_html(target_html)
     except Exception:
         clean_html = target_html
 
     prompt = LLM_PROMPT.format(
-        page_url=page_url,
         target_html=clean_html,
-        target_selector=target_selector,
         extracted_styles=json.dumps(extracted_styles, indent=2),
     )
 
@@ -593,10 +688,12 @@ def generate():
     if result is None:
         return jsonify(error=_llm_error_message(last_err)), 502
 
-    text = result if isinstance(result, str) else str(result)
-    text = strip_markdown_fences(text)
+    hero_html = result if isinstance(result, str) else str(result)
+    hero_html = strip_markdown_fences(hero_html)
 
-    return jsonify(sitemap=text)
+    sitemap_js = assemble_sitemap(customer_name, target_selector, hero_html)
+
+    return jsonify(sitemap=sitemap_js)
 
 
 def _llm_error_message(err):
@@ -632,9 +729,17 @@ def regenerate():
     previous_output = data.get("previousOutput") or ""
     issues = data.get("issues") or []
     feedback_note = (data.get("feedbackNote") or "").strip()
+    customer_name = (data.get("customerName") or "").strip()
 
     if not previous_output.strip():
         return jsonify(error="previousOutput is required."), 400
+
+    if not customer_name:
+        customer_name = derive_customer_name(page_url)
+
+    previous_html = extract_transformer_html(previous_output)
+    if not previous_html:
+        previous_html = previous_output
 
     issue_lines = []
     for key in issues:
@@ -657,11 +762,9 @@ def regenerate():
     prompt = CORRECTION_PROMPT.format(
         issue_list="\n".join(issue_lines),
         user_note=user_note_section,
-        page_url=page_url,
-        target_selector=target_selector,
         target_html=clean_html,
         extracted_styles=json.dumps(extracted_styles, indent=2),
-        previous_output=previous_output,
+        previous_html=previous_html,
     )
 
     last_err = None
@@ -677,10 +780,12 @@ def regenerate():
     if result is None:
         return jsonify(error=_llm_error_message(last_err)), 502
 
-    text = result if isinstance(result, str) else str(result)
-    text = strip_markdown_fences(text)
+    corrected_html = result if isinstance(result, str) else str(result)
+    corrected_html = strip_markdown_fences(corrected_html)
 
-    return jsonify(sitemap=text)
+    sitemap_js = assemble_sitemap(customer_name, target_selector, corrected_html)
+
+    return jsonify(sitemap=sitemap_js)
 
 
 if __name__ == "__main__":

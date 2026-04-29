@@ -1,5 +1,6 @@
 (function () {
   var pageUrlInput = document.getElementById('page-url');
+  var customerNameInput = document.getElementById('customer-name');
   var detectBtn = document.getElementById('detect-btn');
   var detectedFields = document.getElementById('detected-fields');
   var targetSelectorInput = document.getElementById('target-selector');
@@ -174,6 +175,7 @@
           targetSelector: targetSelector,
           targetHtml: targetHtml,
           extractedStyles: extractedStyles,
+          customerName: customerNameInput.value.trim(),
         }),
       });
       var data = await response.json().catch(function () { return {}; });
@@ -232,6 +234,7 @@
           previousOutput: outputArea.value,
           issues: issues,
           feedbackNote: feedbackNote.value.trim(),
+          customerName: customerNameInput.value.trim(),
         }),
       });
       var data = await response.json().catch(function () { return {}; });
@@ -268,6 +271,12 @@
       setBtnLoading(regenerateBtn, false);
     }
   }
+
+  pageUrlInput.addEventListener('blur', function () {
+    if (pageUrlInput.value.trim() && !customerNameInput.value.trim()) {
+      customerNameInput.value = deriveBrand(pageUrlInput.value.trim());
+    }
+  });
 
   detectBtn.addEventListener('click', detectHero);
   generateBtn.addEventListener('click', generateSitemap);
