@@ -81,7 +81,7 @@ SalesforceInteractions.Personalization.Config.initialize({
         transformerTypeDetails: {
             html: `{{HERO_TRANSFORMER_HTML}}`
         }
-    },{{SIMPLE_RECS_TRANSFORMER}}
+    }{{SIMPLE_RECS_TRANSFORMER}}
     ]
 });
 
@@ -139,7 +139,7 @@ SalesforceInteractions.init().then(() => {
 });"""
 
 
-SIMPLE_RECS_TRANSFORMER_JS = r"""
+SIMPLE_RECS_TRANSFORMER_JS = r""",
     {
         name: "SimpleRecs",
         transformerType: "Handlebars",
@@ -241,7 +241,7 @@ SIMPLE_RECS_TRANSFORMER_JS = r"""
     }"""
 
 
-def assemble_sitemap(customer_name, target_selector, hero_html, include_recs=False):
+def assemble_sitemap(customer_name, target_selector, hero_html, include_recs=True):
     """Build the complete sitemap JS from the template and LLM-generated hero HTML."""
     recs_block = SIMPLE_RECS_TRANSFORMER_JS if include_recs else ""
     return (
