@@ -1,0 +1,10 @@
+flask
+gunicorn
+requests
+beautifulsoup4
+cssutils
+langchain
+langchain-core
+pydantic
+aiohttp
+python-dotenv

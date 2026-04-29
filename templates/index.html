@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personalization Sitemap Generator [DEV]</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="dev-banner" role="status">DEV ENVIRONMENT</div>
+    <div class="app">
+      <header class="app-header" role="banner">
+        <div class="header-inner">
+          <div class="brand-mark" aria-hidden="true"><span class="brand-cloud"></span></div>
+          <div class="header-titles">
+            <h1 class="app-title">Personalization Sitemap Generator</h1>
+            <p class="app-subtitle">Detect hero content, extract styles, and generate Salesforce sitemap code.</p>
+          </div>
+          <nav class="header-nav">
+            <a href="#generation-history" class="header-link">History</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="app-main" role="main">
+        <section class="panel" aria-labelledby="inputs-heading">
+          <h2 id="inputs-heading" class="panel-heading">Inputs</h2>
+          <form id="workflow-form" class="form" novalidate>
+            <div class="field">
+              <label class="label" for="page-url">Customer Website URL</label>
+              <input
+                id="page-url"
+                type="url"
+                class="input"
+                placeholder="https://www.example.com/"
+                autocomplete="url"
+                required
+              />
+            </div>
+            <div class="actions">
+              <button type="button" id="detect-btn" class="btn btn-primary">
+                <span class="btn-label">Detect Hero Element</span>
+                <span class="btn-loading" hidden aria-hidden="true">Detecting...</span>
+              </button>
+              <span id="extracting-indicator" class="status-chip" hidden>Extracting styles...</span>
+            </div>
+
+            <div id="detected-fields" hidden>
+              <div class="field">
+                <label class="label" for="target-selector">CSS Selector</label>
+                <input id="target-selector" type="text" class="input" readonly />
+              </div>
+              <div class="field">
+                <label class="label" for="target-html">Element HTML</label>
+                <textarea id="target-html" class="textarea textarea-tall" rows="8" readonly></textarea>
+              </div>
+              <div class="toggle-row">
+                <label class="toggle-label" for="manual-toggle">
+                  <input type="checkbox" id="manual-toggle" />
+                  Looks wrong? Edit manually
+                </label>
+              </div>
+              <div class="actions">
+                <button type="button" id="generate-btn" class="btn btn-primary" disabled>
+                  <span class="btn-label">Generate Sitemap</span>
+                  <span class="btn-loading" hidden aria-hidden="true">Generating...</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" aria-labelledby="output-heading">
+          <h2 id="output-heading" class="panel-heading">Generated sitemap</h2>
+          <div id="error-banner" class="banner banner-error" role="alert" hidden></div>
+          <label class="label visually-hidden" for="output">Sitemap JavaScript output</label>
+          <textarea
+            id="output"
+            class="textarea output-area"
+            rows="18"
+            readonly
+            placeholder="Generated JavaScript will appear here."
+          ></textarea>
+          <div class="actions actions-output">
+            <button type="button" id="copy-btn" class="btn btn-neutral" disabled>Copy to Clipboard</button>
+          </div>
+
+          <div id="feedback-panel" class="feedback-panel" hidden>
+            <h3 class="feedback-heading">Not quite right? Select issues and regenerate.</h3>
+            <div class="feedback-checks">
+              <label class="check-label"><input type="checkbox" name="fb-issue" value="background_image" /> Background image not showing</label>
+              <label class="check-label"><input type="checkbox" name="fb-issue" value="text_content" /> Header or subheader wrong</label>
+              <label class="check-label"><input type="checkbox" name="fb-issue" value="cta_missing" /> CTA button missing or wrong</label>
+              <label class="check-label"><input type="checkbox" name="fb-issue" value="layout_wrong" /> Layout doesn't match original</label>
+            </div>
+            <div class="field">
+              <label class="label" for="feedback-note">Additional details (optional)</label>
+              <textarea id="feedback-note" class="textarea" rows="3" placeholder="e.g. The CTA should be centered below the subheader..."></textarea>
+            </div>
+            <div class="actions">
+              <button type="button" id="regenerate-btn" class="btn btn-primary" disabled>
+                <span class="btn-label">Regenerate with Feedback</span>
+                <span class="btn-loading" hidden aria-hidden="true">Regenerating...</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <section id="generation-history" class="history-section" aria-labelledby="history-heading">
+        <div class="history-header">
+          <h2 id="history-heading" class="panel-heading">Generation History</h2>
+          <button type="button" id="clear-history-btn" class="history-clear" hidden>Clear All</button>
+        </div>
+        <div id="history-list" class="history-list">
+          <p class="history-empty">No sitemaps generated yet.</p>
+        </div>
+      </section>
+
+      <footer class="app-footer" role="contentinfo">
+        <p>Designed for Salesforce sales engineers. Powered by Einstein LLM via Salesforce Connected App.</p>
+      </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
