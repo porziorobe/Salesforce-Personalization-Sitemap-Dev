@@ -211,11 +211,6 @@ SIMPLE_RECS_TRANSFORMER_JS = r""",
                 .sfdcep-recs-card__cta:hover {
                     text-decoration: underline;
                 }
-                .sfdcep-recs-card__cta::after {
-                    content: '\u203a';
-                    font-size: 18px;
-                    line-height: 1;
-                }
             </style>
             <div class="sfdcep-recs-carousel">
                 {{#each (subVar 'recs')}}
