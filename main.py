@@ -212,7 +212,7 @@ SIMPLE_RECS_TRANSFORMER_JS = r""",
                     text-decoration: underline;
                 }
                 .sfdcep-recs-card__cta::after {
-                    content: '\203a';
+                    content: '\u203a';
                     font-size: 18px;
                     line-height: 1;
                 }
